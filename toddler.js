@@ -15,6 +15,7 @@ var toddler = {
 
     select: function(query, what) {
         query = this.operation(query, ":select");
+        what = mori.toClj(what);
         return mori.assoc(query, ":columns", what);
     },
 

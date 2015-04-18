@@ -1,0 +1,15 @@
+{
+  "name": "toddler-js",
+  "version": "0.1.0",
+  "description": "Javascript DSL for Query Languages",
+  "author": "Kyle Dawkins <kdawkins@fastmail.fm>",
+  "main": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "mori": "^0.3.2"
+  },
+  "devDependencies": {},
+  "license": "MIT"
+}

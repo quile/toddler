@@ -154,7 +154,6 @@ Translator.prototype.prepare = function(query) {
     } else if (!mori.isVector(columns)) {
         columns = mori.vector(columns);
     }
-    console.log("columns: ", columns);
     q = q + mori.toJs(columns).join(", ");
 
     // tables
@@ -177,20 +176,22 @@ Translator.prototype.prepare = function(query) {
 }
 
 Translator.prototype.OPERAND_MAP = mori.hashMap(
-    ":and", "AND",
-    ":or", "OR",
-    ":not", "NOT"
+    ":and", "and",
+    ":or", "or",
+    ":not", "not"
 );
 
 Translator.prototype.prepareClause = function(clause) {
     if (mori.isMap(clause)) {
         var type = mori.get(clause, ":type");
         if (type === ":and" || type === ":or") {
-            var clauses = mori.map(mori.get(clause, ":sub"), this.prepareClause);
-            var statements = mori.map(mori.partial(mori.get, ":statement"), clauses);
+            var clauses = mori.map(this.prepareClause, mori.get(clause, ":sub"));
+
+            var statements = mori.map(mori.curry(mori.get, ":statement"), clauses);
+
             var binds = mori.map(mori.partial(mori.get, ":bind"), clauses);
 
-            var statement = "(" + mori.toJs(statements).join(mori.get(this.OPERAND_MAP, type)) + ")";
+            var statement = "(" + mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ") + ")";
             var bind = mori.reduce(mori.conj, mori.vector(), binds);
             return mori.hashMap(":statement", statement, ":bind", bind);
         } else {
@@ -201,7 +202,7 @@ Translator.prototype.prepareClause = function(clause) {
         }
     } else if (mori.isSequential(clause)) {
         var statement = mori.get(clause, 1) + " " + mori.get(clause, 0) + " ";
-        var binds = [];
+        var binds = mori.vector();
         var right = mori.get(clause, 2);
         if (right === "?" || right === "%@") {
             mori.conj(binds, "?");

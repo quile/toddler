@@ -9,4 +9,8 @@ turned into SQL or CQL for sending to SQL databases or Cassandra.
 This is a work-in-progress as I assemble it from various bits of old
 code I have lying around
 
-(c) Kyle Dawkins, 2015 - present
+# License
+
+MIT
+
+(c) kd 2015 - present

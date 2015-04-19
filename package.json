@@ -1,12 +1,14 @@
 {
-  "name": "toddler-js",
-  "version": "0.1.0",
+  "name": "toddler",
+  "version": "0.1.2",
   "description": "Javascript DSL for Query Languages",
-  "author": "Kyle Dawkins <kdawkins@fastmail.fm>",
-  "main": "",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "author": {
+    "name": "Kyle Dawkins",
+    "email": "kdawkins@fastmail.fm"
   },
+  "main": "./toddler.js",
+  "repository": "https://github.com/quile/toddler",
+  "scripts": {},
   "dependencies": {
     "mori": "^0.3.2"
   },

@@ -18,7 +18,7 @@ Create a query (there are a few ways to do this):
 
 Now qualify it:
 
-    q.select("foo", "bar").from("zip").where(c.lt("pop", "?")).limit(12);
+    q.select("foo", "bar").from("zip").where(toddler.lt("pop", "?")).limit(12);
 
 And generate some CQL:
 

@@ -30,6 +30,10 @@ it's trivial to serialise and deserialise queries.  Bottom line:
 You can avoid writing festering pustulent CQL queries
 as strings in your application.
 
+## Warning
+
+This is likely to be unstable for a while as I put all the
+bits and pieces together into a more coherent whole.
 
 # License
 

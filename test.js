@@ -1,7 +1,7 @@
 var m = require("mori");
 var c = require("./toddler");
 
-t = new c.Translator();
+t = new c.CQLTranslator();
 var q = c.select(c.from(c.where(c.limit(null, 10), c.eq("foo", "%@")), "foo"), ["id", "banana"]);
 console.log(q);
 
@@ -9,18 +9,7 @@ q = c.select(c.from(c.where(c.limit(c.orderBy(c.orderBy(null, ["philbert"]), ["b
 console.log(q);
 console.log(t.prepare(q));
 
-/*
-q = new c.Query();
+var q = c.query("foo", "bar").from("zip").where(c.lt("pop", "?")).limit(12);
+console.log(q.cql());
 
-q.select("*").from("tree").where(c.eq("fruit", "banana")).and(c.eq("flowers", "red")).or(c.eq("season", "summer")).limit(3).offset(6).orderBy("size").orderBy("fish");
-console.log(q.query());
-*/
 
-q = new c.Query();
-
-q.select("foo", "bar").from("zip").where(c.lt("pop", "fizz")).limit(12);
-console.log(q.query());
-
-console.log(t.prepare(q.query()));
-
-console.log(t.prepareClause(m.get(q.query(), ":where")));

@@ -224,7 +224,8 @@ Query.prototype.not = function() {
 Query.prototype.query = function() { return this._query };
 
 Query.prototype.cql = function() {
-    return this._translator.prepare(this._query);
+    var cql = this._translator.prepare(this._query);
+    return mori.get(cql, ":statement");
 }
 
 toddler.Query = Query;

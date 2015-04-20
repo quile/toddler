@@ -23,7 +23,7 @@ Now qualify it:
 And generate some CQL:
 
     console.log(q.cql());
-    => {":statement" "select foo, bar from zip where pop < ? limit 12", ":bind" ["?"]}
+    => "select foo, bar from zip where pop < ? limit 12"
 
 Queries are stored internally as mori (read: immutable) data structures, so
 it's trivial to serialise and deserialise queries.  Bottom line:

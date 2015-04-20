@@ -145,7 +145,7 @@ CQLTranslator.prototype.prepareClause = function(clause) {
 
             var binds = mori.map(mori.partial(mori.get, ":bind"), clauses);
 
-            var statement = "(" + mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ") + ")";
+            var statement = mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ");
             var bind = mori.reduce(mori.conj, mori.vector(), binds);
             return mori.hashMap(":statement", statement, ":bind", bind);
         } else {

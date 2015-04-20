@@ -1,6 +1,6 @@
 {
   "name": "toddler",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Javascript DSL for Query Languages",
   "author": {
     "name": "Kyle Dawkins",

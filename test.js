@@ -9,7 +9,9 @@ q = c.select(c.from(c.where(c.limit(c.orderBy(c.orderBy(null, ["philbert"]), ["b
 console.log(q);
 console.log(t.prepare(q));
 
-var q = c.query("foo", "bar").from("zip").where(c.lt("pop", "?")).limit(12);
+q = c.query("foo", "bar").from("zip").where(c.lt("pop", "?")).limit(12);
 console.log(q.cql());
 
 
+q = c.query().insert("foo", "bar", "baz").into("mungo").values("hey", "?", c.raw("date(now())"));
+console.log(q.cql());

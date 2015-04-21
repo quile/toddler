@@ -27,14 +27,33 @@ var toddler = {
         return mori.assoc(query, ":columns", what);
     },
 
+    insert: function(query, what) {
+        query = this.operation(query, ":insert");
+        what = mori.toClj(what);
+        return mori.assoc(query, ":columns", what);
+    },
+
+    delete: function(query) {
+        return this.operation(query, ":delete");
+    },
+
+    into: function(query, table) {
+        return this.from(query, table);
+    },
+
     from: function(query, table) {
         return mori.assoc(this._query(query),
-                          ":from", table);
+                          ":table", table);
     },
 
     where: function(query, clause) {
         return mori.assoc(this._query(query),
                           ":where", clause);
+    },
+
+    values: function(query, values) {
+        return mori.assoc(this._query(query),
+                          ":values", values);
     },
 
     limit: function(query, limit) {
@@ -84,20 +103,66 @@ var toddler = {
     not: function(clause) {
         return mori.hashMap(":type", ":not", ":sub", clause);
     },
+
+    raw: function(str) {
+        return mori.hashMap(":raw", str);
+    }
 };
 
 function CQLTranslator() {
 }
 
-// Later generalise this to other dialects
-CQLTranslator.prototype.prepare = function(query) {
-    var q = "";
+CQLTranslator.prototype.prepareSelect = function(query) {
+    var q = ["select"];
 
-    // operator
-    if (mori.get(query, ":operation") === ":select") {
-        q = q + "select ";
+    // columns
+    q.push(this.prepareColumns(query));
+
+    // tables
+    q.push("from");
+    q.push(this.prepareTables(query));
+
+    var where = mori.get(query, ":where");
+    var bind = mori.vector();
+    if (where) {
+        q.push("where");
+        var clause = this.prepareClause(where);
+        q.push(mori.get(clause, ":statement"));
+        bind = mori.get(clause, ":bind");
     }
 
+    var limit = mori.get(query, ":limit");
+    if (limit) {
+        q.push("limit");
+        q.push(limit);
+        if (limit === "?" || limit === "%@") {
+            bind = mori.conj(bind, "?");
+        }
+    }
+
+    // TODO: offset is not valid for CQL but is
+    // for SQL.
+
+    return mori.hashMap(":statement", q.join(" "), ":bind", bind);
+}
+
+CQLTranslator.prototype.prepareInsert = function(query) {
+    var q = ["insert into", this.prepareTables(query)];
+    q.push("(" + this.prepareColumns(query) + ")");
+    q.push("values");
+
+    var preparedValues = this.prepareValues(query);
+    q.push("(" + mori.get(preparedValues, ":statement") + ")")
+
+    return mori.hashMap(":statement", q.join(" "),
+                        ":bind", mori.get(preparedValues, ":bind"));
+};
+
+CQLTranslator.prototype.prepareTables = function(query) {
+    return mori.get(query, ":table");
+};
+
+CQLTranslator.prototype.prepareColumns = function(query) {
     // columns
     var columns = mori.get(query, ":columns");
     if (columns === null) {
@@ -105,28 +170,40 @@ CQLTranslator.prototype.prepare = function(query) {
     } else if (!mori.isVector(columns)) {
         columns = mori.vector(columns);
     }
-    q = q + mori.toJs(columns).join(", ");
+    return mori.toJs(columns).join(", ");
+};
 
-    // tables
-    q = q + " from " + mori.get(query, ":from");
+CQLTranslator.prototype.prepareValues = function(query) {
+    var binds = [];
+    var q = [];
+    var values = mori.get(query, ":values");
+    mori.each(values, function(v) {
+        if (v === "?" || v === "%@") {
+            binds.push("?");
+            q.push("?");
+        } else {
+            if (mori.isMap(v)) {
+                q.push(mori.get(v, ":raw"));
+                binds.push("?");
+            } else {
+                q.push("?");
+                binds.push(v);
+            }
+        }
+    });
+    return mori.hashMap(":statement", q.join(", "), ":bind", mori.vector.apply(mori, binds));
+};
 
-    var where = mori.get(query, ":where");
-    var bind = mori.vector();
-    if (where) {
-        var clause = this.prepareClause(where);
-        q = q + " where " + mori.get(clause, ":statement");
-        bind = mori.get(clause, ":bind");
+// Later generalise this to other dialects
+CQLTranslator.prototype.prepare = function(query) {
+    // operator
+    if (mori.get(query, ":operation") === ":select") {
+        return this.prepareSelect(query);
     }
 
-    var limit = mori.get(query, ":limit");
-    if (limit) {
-        q = q + " limit " + limit;
+    if (mori.get(query, ":operation") === ":insert") {
+        return this.prepareInsert(query);
     }
-
-    // TODO: offset is not valid for CQL but is
-    // for SQL.
-
-    return mori.hashMap(":statement", q, ":bind", bind);
 }
 
 CQLTranslator.prototype.OPERAND_MAP = mori.hashMap(
@@ -178,13 +255,33 @@ Query.prototype.select = function(columns) {
     return this;
 };
 
+Query.prototype.insert = function(columns) {
+    var what = mori.isSequential(mori.toClj(columns)) ? columns : mori.vector.apply(mori, arguments);
+    this._query = toddler.insert(this._query, what);
+    return this;
+};
+
 Query.prototype.from = function(table) {
     this._query = toddler.from(this._query, table);
     return this;
 };
 
+Query.prototype.into = function(table) {
+    return this.from(table);
+};
+
 Query.prototype.where = function(clause) {
     this._query = toddler.where(this._query, clause);
+    return this;
+};
+
+Query.prototype.values = function(values) {
+    values = mori.toClj(values);
+    if (arguments.length === 1 && mori.isVector(values)) {
+    } else {
+        values = mori.vector.apply(mori, arguments);
+    }
+    this._query = toddler.values(this._query, values);
     return this;
 };
 

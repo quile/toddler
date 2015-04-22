@@ -32,17 +32,19 @@ serialisable datastructures to represent them instead.
 
 ## Insert Example
 
-   var insert = toddler.insert("foo", "bar", "baz").
-                        into("quux").
-                        values("?", "hey", toddler.raw("dateOf(now())"));
-   console.log(insert.cql());
-   => "insert into quux (foo, bar, baz) values (?, ?, dateOf(now()))"
+You can generate an insert statement using the same syntax:
+
+    var insert = toddler.insert("foo", "bar", "baz").
+                         into("quux").
+                         values("?", "hey", toddler.raw("dateOf(now())"));
+    console.log(insert.cql());
+    => "insert into quux (foo, bar, baz) values (?, ?, dateOf(now()))"
 
 Note that the "hey" has disappeared from the values; instead it will appear
 in the "binds":
 
-   console.log(insert.binds());
-   => ["?", "hey"]
+    console.log(insert.binds());
+    => ["?", "hey"]
 
 
 ## Warning

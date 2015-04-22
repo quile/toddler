@@ -104,6 +104,10 @@ var toddler = {
         return mori.hashMap(":type", ":not", ":sub", clause);
     },
 
+    bind: function(str) {
+        return mori.hashMap(":bind", str);
+    },
+
     raw: function(str) {
         return mori.hashMap(":raw", str);
     }
@@ -178,17 +182,17 @@ CQLTranslator.prototype.prepareValues = function(query) {
     var q = [];
     var values = mori.get(query, ":values");
     mori.each(values, function(v) {
-        if (v === "?" || v === "%@") {
-            binds.push("?");
+        if (!mori.isMap(v)) {
+            console.log("Value is not a map :(");
+            return;
+        }
+
+        if (mori.hasKey(v, ":raw")) {
+            var value = mori.get(v, ":raw");
+            q.push(value);
+        } else if (mori.hasKey(v, ":bind")) {
             q.push("?");
-        } else {
-            if (mori.isMap(v)) {
-                q.push(mori.get(v, ":raw"));
-                binds.push("?");
-            } else {
-                q.push("?");
-                binds.push(v);
-            }
+            binds.push(mori.get(v, ":bind"));
         }
     });
     return mori.hashMap(":statement", q.join(", "), ":bind", mori.vector.apply(mori, binds));
@@ -217,11 +221,8 @@ CQLTranslator.prototype.prepareClause = function(clause) {
         var type = mori.get(clause, ":type");
         if (type === ":and" || type === ":or") {
             var clauses = mori.map(this.prepareClause, mori.get(clause, ":sub"));
-
             var statements = mori.map(mori.curry(mori.get, ":statement"), clauses);
-
             var binds = mori.map(mori.partial(mori.get, ":bind"), clauses);
-
             var statement = mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ");
             var bind = mori.reduce(mori.conj, mori.vector(), binds);
             return mori.hashMap(":statement", statement, ":bind", bind);
@@ -323,6 +324,11 @@ Query.prototype.query = function() { return this._query };
 Query.prototype.cql = function() {
     var cql = this._translator.prepare(this._query);
     return mori.get(cql, ":statement");
+}
+
+Query.prototype.binds = function() {
+    var cql = this._translator.prepare(this._query);
+    return mori.get(cql, ":bind");
 }
 
 toddler.Query = Query;

@@ -12,6 +12,6 @@ console.log(t.prepare(q));
 q = c.query("foo", "bar").from("zip").where(c.lt("pop", "?")).limit(12);
 console.log(q.cql());
 
-
-q = c.query().insert("foo", "bar", "baz").into("mungo").values("hey", "?", c.raw("date(now())"));
+q = c.query().insert("foo", "bar", "baz").into("mungo").values(c.bind("hey"), c.bind("?"), c.raw("date(now())"));
 console.log(q.cql());
+console.log(q.binds());

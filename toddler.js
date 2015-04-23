@@ -261,7 +261,7 @@ CQLTranslator.prototype.prepareClause = function(clause) {
                 clauses
             );
             var statement = mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ");
-            var bind = mori.toJs(mori.flatten(binds));
+            var bind = mori.toClj(mori.flatten(binds));
             return mori.hashMap(":statement", statement,
                                 ":bind", bind);
         } else {
@@ -289,7 +289,7 @@ CQLTranslator.prototype.prepareClause = function(clause) {
             }
             statement = statement + "?";
         }
-        return mori.hashMap(":statement", statement, ":bind", binds);
+        return mori.hashMap(":statement", statement, ":bind", mori.toClj(binds));
     }
 }
 

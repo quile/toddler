@@ -151,15 +151,34 @@ CQLTranslator.prototype.prepareSelect = function(query) {
 }
 
 CQLTranslator.prototype.prepareInsert = function(query) {
-    var q = ["insert into", this.prepareTables(query)];
-    q.push("(" + this.prepareColumns(query) + ")");
-    q.push("values");
-
     var preparedValues = this.prepareValues(query);
-    q.push("(" + mori.get(preparedValues, ":statement") + ")")
-
+    var q = [
+        "insert into",
+        this.prepareTables(query),
+        "(" + this.prepareColumns(query) + ")",
+        "values",
+        "(" + mori.get(preparedValues, ":statement") + ")"
+    ];
     return mori.hashMap(":statement", q.join(" "),
                         ":bind", mori.get(preparedValues, ":bind"));
+};
+
+CQLTranslator.prototype.prepareDelete = function(query) {
+    var q = [
+        "delete from",
+        this.prepareTables(query)
+    ];
+
+    var where = mori.get(query, ":where");
+    var bind = mori.vector();
+    if (where) {
+        q.push("where");
+        var clause = this.prepareClause(where);
+        q.push(mori.get(clause, ":statement"));
+        bind = mori.get(clause, ":bind");
+    }
+    return mori.hashMap(":statement", q.join(" "),
+                        ":bind", bind);
 };
 
 CQLTranslator.prototype.prepareTables = function(query) {
@@ -208,6 +227,10 @@ CQLTranslator.prototype.prepare = function(query) {
     if (mori.get(query, ":operation") === ":insert") {
         return this.prepareInsert(query);
     }
+
+    if (mori.get(query, ":operation") === ":delete") {
+        return this.prepareDelete(query);
+    }
 }
 
 CQLTranslator.prototype.OPERAND_MAP = mori.hashMap(
@@ -222,10 +245,14 @@ CQLTranslator.prototype.prepareClause = function(clause) {
         if (type === ":and" || type === ":or") {
             var clauses = mori.map(this.prepareClause, mori.get(clause, ":sub"));
             var statements = mori.map(mori.curry(mori.get, ":statement"), clauses);
-            var binds = mori.map(mori.partial(mori.get, ":bind"), clauses);
+            var binds = mori.map(
+                function(c) { return mori.get(c, ":bind") },
+                clauses
+            );
             var statement = mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ");
-            var bind = mori.reduce(mori.conj, mori.vector(), binds);
-            return mori.hashMap(":statement", statement, ":bind", bind);
+            var bind = mori.toJs(mori.flatten(binds));
+            return mori.hashMap(":statement", statement,
+                                ":bind", bind);
         } else {
             // NOT
             var notClause = this.prepareClause(mori.get(clause, ":sub"));
@@ -236,10 +263,22 @@ CQLTranslator.prototype.prepareClause = function(clause) {
         var statement = mori.get(clause, 1) + " " + mori.get(clause, 0) + " ";
         var binds = mori.vector();
         var right = mori.get(clause, 2);
-        if (right === "?" || right === "%@") {
-            binds = mori.conj(binds, "?");
+        if (mori.isMap(right)) {
+            if (mori.hasKey(right, ":bind")) {
+                binds = mori.conj(binds, mori.get(right, ":bind"));
+                statement = statement + " ?";
+            } else if (mori.hasKey(right, ":raw")) {
+                statement = statement + " " + mori.get(right, ":raw");
+            }
+        } else {
+            if (right === "?" || right === "%@") {
+                binds = mori.conj(binds, "?");
+            } else {
+                binds = mori.conj(binds, right);
+            }
+            statement = statement + "?";
         }
-        return mori.hashMap(":statement", statement + right, ":bind", binds);
+        return mori.hashMap(":statement", statement, ":bind", binds);
     }
 }
 
@@ -259,6 +298,11 @@ Query.prototype.select = function(columns) {
 Query.prototype.insert = function(columns) {
     var what = mori.isSequential(mori.toClj(columns)) ? columns : mori.vector.apply(mori, arguments);
     this._query = toddler.insert(this._query, what);
+    return this;
+};
+
+Query.prototype.delete = function() {
+    this._query = toddler.delete(this._query);
     return this;
 };
 
@@ -328,7 +372,7 @@ Query.prototype.cql = function() {
 
 Query.prototype.binds = function() {
     var cql = this._translator.prepare(this._query);
-    return mori.get(cql, ":bind");
+    return mori.toJs(mori.get(cql, ":bind"));
 }
 
 toddler.Query = Query;

@@ -46,6 +46,17 @@ in the "binds":
     console.log(insert.binds());
     => ["?", "hey"]
 
+## Delete Example
+
+Delete statements are fairly simple:
+
+    var delete = toddler.query().delete().from("tree").
+                         where(toddler.eq("fruit", toddler.bind("banana")));
+
+    console.log(delete.sql());
+    => "delete from tree where fruit = ?"
+
+You can retrieve any bind values the same way as shown above.
 
 ## Warning
 

@@ -1,6 +1,6 @@
 {
   "name": "toddler",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Javascript DSL for Query Languages",
   "author": {
     "name": "Kyle Dawkins",
@@ -8,7 +8,9 @@
   },
   "main": "./toddler.js",
   "repository": "https://github.com/quile/toddler",
-  "scripts": {},
+    "scripts": {
+      "test": "mocha"
+    },
   "dependencies": {
     "mori": "^0.3.2"
   },

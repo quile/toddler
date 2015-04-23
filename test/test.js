@@ -90,6 +90,14 @@ describe("queries", function() {
     });
 
     describe("delete", function() {
+        var del = toddler.delete().from("argh");
+        it("creates a query directly", function() {
+            assert(mori.equals(
+                del._query,
+                mori.hashMap(":operation", ":delete",
+                             ":table", "argh")
+            ));
+        });
         var q = toddler.query().delete().from("aquarium").
             where(
                 toddler.or([

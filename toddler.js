@@ -43,7 +43,7 @@ var toddler = {
 
     delete: function(query) {
         if (!mori.isMap(query)) {
-            return toddler.delete();
+            return toddler.query().delete();
         }
         return this.operation(query, ":delete");
     },

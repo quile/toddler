@@ -22,18 +22,29 @@ var toddler = {
     },
 
     select: function(query, what) {
+        if (!mori.isMap(query)) {
+            var qo = toddler.query();
+            return qo.select.apply(qo, arguments);
+        }
         query = this.operation(query, ":select");
         what = mori.toClj(what);
         return mori.assoc(query, ":columns", what);
     },
 
     insert: function(query, what) {
+        if (!mori.isMap(query)) {
+            var qo = toddler.query();
+            return qo.insert.apply(qo, arguments);
+        }
         query = this.operation(query, ":insert");
         what = mori.toClj(what);
         return mori.assoc(query, ":columns", what);
     },
 
     delete: function(query) {
+        if (!mori.isMap(query)) {
+            return toddler.delete();
+        }
         return this.operation(query, ":delete");
     },
 
@@ -266,9 +277,9 @@ CQLTranslator.prototype.prepareClause = function(clause) {
         if (mori.isMap(right)) {
             if (mori.hasKey(right, ":bind")) {
                 binds = mori.conj(binds, mori.get(right, ":bind"));
-                statement = statement + " ?";
+                statement = statement + "?";
             } else if (mori.hasKey(right, ":raw")) {
-                statement = statement + " " + mori.get(right, ":raw");
+                statement = statement + mori.get(right, ":raw");
             }
         } else {
             if (right === "?" || right === "%@") {

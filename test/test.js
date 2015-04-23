@@ -28,6 +28,15 @@ describe("queries", function() {
             ));
         });
 
+        var select = toddler.select("foo", "bar").from("baz");
+        it("produced a valid select query directly", function() {
+            assert(mori.equals(
+                mori.hashMap(":operation", ":select",
+                             ":columns", mori.vector("foo", "bar"),
+                             ":table", "baz")
+            ));
+        });
+
         var query = toddler.query().select("mango", "papaya").
             from("fruit").
             where(toddler.and(
@@ -38,7 +47,7 @@ describe("queries", function() {
 
         var cql = query.cql();
 
-        it("generated correct CQL from select", function() {
+        it("generated correct CQL from select object", function() {
             assert.equal(
                 cql,
                 "select mango, papaya from fruit where colour = ? and size > ? limit 3"
@@ -48,6 +57,17 @@ describe("queries", function() {
 
 
     describe("insert", function() {
+        var insert = toddler.insert("goo", "boo").into("junk").values("bonk", "zonk");
+        it("creates a query object directly", function() {
+            assert(mori.equals(
+                insert._query,
+                mori.hashMap(":operation", ":insert",
+                             ":columns", mori.vector("goo", "boo"),
+                             ":table", "junk",
+                             ":values", mori.vector("bonk", "zonk"))
+            ));
+        });
+
         var q = toddler.query().insert("zip", "zap").
             into("zoo").values(
                 toddler.bind("gronk"),
@@ -89,6 +109,24 @@ describe("queries", function() {
             var binds = q.binds();
             assert.equal(binds[0], "shark");
             assert.equal(binds[1], "manta ray");
+        });
+
+        var noBinds = toddler.query().delete().from('user_favorites').where(
+            toddler.and(
+                toddler.eq('user_id', toddler.bind('?')),
+                toddler.eq('neulion_id', toddler.bind('?'))
+            )
+        );
+
+        it("generates the correct empty bind values from delete", function() {
+            var binds = noBinds.binds();
+            assert.equal(binds[0], "?");
+            assert.equal(binds[1], "?");
+            var cql = noBinds.cql();
+            assert.equal(
+                cql,
+                "delete from user_favorites where user_id = ? and neulion_id = ?"
+            );
         });
     })
 });

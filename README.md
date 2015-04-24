@@ -53,10 +53,21 @@ Delete statements are fairly simple:
     var delete = toddler.query().delete().from("tree").
                          where(toddler.eq("fruit", toddler.bind("banana")));
 
-    console.log(delete.sql());
+    console.log(delete.cql());
     => "delete from tree where fruit = ?"
 
 You can retrieve any bind values the same way as shown above.
+
+More docs coming soon; for now just check out the tests.
+
+## TODO
+
+* Proper docs
+* Proper tests
+* SQL (dialect) generation
+* bind-value conveniences & helpers
+* Clean up CQL generation
+* Add other missing syntax
 
 ## Warning
 

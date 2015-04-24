@@ -119,10 +119,10 @@ describe("queries", function() {
             assert.equal(binds[1], "manta ray");
         });
 
-        var noBinds = toddler.query().delete().from('user_favorites').where(
+        var noBinds = toddler.query().delete().from('lunch_box').where(
             toddler.and(
-                toddler.eq('user_id', toddler.bind('?')),
-                toddler.eq('neulion_id', toddler.bind('?'))
+                toddler.eq('salad', toddler.bind('?')),
+                toddler.eq('cheese', toddler.bind('?'))
             )
         );
 
@@ -133,8 +133,62 @@ describe("queries", function() {
             var cql = noBinds.cql();
             assert.equal(
                 cql,
-                "delete from user_favorites where user_id = ? and neulion_id = ?"
+                "delete from lunch_box where salad = ? and cheese = ?"
             );
         });
-    })
+    });
+
+    describe("clause", function() {
+
+        it("distinguishes correctly between single and multiple clauses", function() {
+            var clause = toddler.eq("foo", "bar");
+
+            assert(mori.equals(
+                t.prepareClause(clause),
+                mori.hashMap(":statement", "foo = ?", ":bind", mori.vector("bar"))
+            ));
+        });
+
+        it("generates NOT clause", function() {
+            var clause = toddler.not(toddler.and(toddler.eq("foo", "bar"), toddler.ge("thing", 12)));
+
+            assert(mori.equals(
+                t.prepareClause(clause),
+                mori.hashMap(":statement", "not foo = ? and thing >= ?",
+                             ":bind", mori.vector("bar", 12))
+            ));
+        });
+
+        it("generates AND clause", function() {
+            var clause = toddler.and(toddler.eq("foo", "bar"), toddler.ge("thing", 12));
+
+            assert(mori.equals(
+                t.prepareClause(clause),
+                mori.hashMap(":statement", "foo = ? and thing >= ?",
+                             ":bind", mori.vector("bar", 12))
+            ));
+        });
+
+        it("generates OR clause", function() {
+            var clause = toddler.or(toddler.eq("foo", "bar"), toddler.ge("thing", 12));
+
+            assert(mori.equals(
+                t.prepareClause(clause),
+                mori.hashMap(":statement", "foo = ? or thing >= ?",
+                             ":bind", mori.vector("bar", 12))
+            ));
+        });
+
+        it("generates nested clauses in correct order", function() {
+            var clause1 = toddler.or(toddler.eq("foo", "bar"), toddler.ne("baz", "quux"));
+            var clause2 = toddler.and(toddler.eq("blonk", "zap"), toddler.lt("gronk", 42));
+            var clause3 = toddler.and(clause1, clause2);
+
+            assert(mori.equals(
+                t.prepareClause(clause3),
+                mori.hashMap(":statement", "foo = ? or baz != ? and blonk = ? and gronk < ?",
+                             ":bind", mori.vector("bar", "quux", "zap", 42))
+            ))
+        });
+    });
 });

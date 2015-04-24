@@ -124,8 +124,7 @@ var toddler = {
     }
 };
 
-function CQLTranslator() {
-}
+function CQLTranslator() {}
 
 CQLTranslator.prototype.prepareSelect = function(query) {
     var q = ["select"];
@@ -158,7 +157,7 @@ CQLTranslator.prototype.prepareSelect = function(query) {
     // TODO: offset is not valid for CQL but is
     // for SQL.
 
-    return mori.hashMap(":statement", q.join(" "), ":bind", bind);
+    return mori.hashMap(":statement", q.join(" "), ":bind", mori.toJs(bind));
 }
 
 CQLTranslator.prototype.prepareInsert = function(query) {
@@ -171,7 +170,7 @@ CQLTranslator.prototype.prepareInsert = function(query) {
         "(" + mori.get(preparedValues, ":statement") + ")"
     ];
     return mori.hashMap(":statement", q.join(" "),
-                        ":bind", mori.get(preparedValues, ":bind"));
+                        ":bind", mori.toJs(mori.get(preparedValues, ":bind")));
 };
 
 CQLTranslator.prototype.prepareDelete = function(query) {
@@ -189,7 +188,7 @@ CQLTranslator.prototype.prepareDelete = function(query) {
         bind = mori.get(clause, ":bind");
     }
     return mori.hashMap(":statement", q.join(" "),
-                        ":bind", bind);
+                        ":bind", mori.toJs(bind));
 };
 
 CQLTranslator.prototype.prepareTables = function(query) {
@@ -225,7 +224,8 @@ CQLTranslator.prototype.prepareValues = function(query) {
             binds.push(mori.get(v, ":bind"));
         }
     });
-    return mori.hashMap(":statement", q.join(", "), ":bind", mori.vector.apply(mori, binds));
+    return mori.hashMap(":statement", q.join(", "),
+                        ":bind", mori.vector.apply(mori, binds));
 };
 
 // Later generalise this to other dialects
@@ -251,17 +251,24 @@ CQLTranslator.prototype.OPERAND_MAP = mori.hashMap(
 );
 
 CQLTranslator.prototype.prepareClause = function(clause) {
+    var self = this;
     if (mori.isMap(clause)) {
         var type = mori.get(clause, ":type");
         if (type === ":and" || type === ":or") {
-            var clauses = mori.map(this.prepareClause, mori.get(clause, ":sub"));
-            var statements = mori.map(mori.curry(mori.get, ":statement"), clauses);
+            var clauses = mori.map(
+                function(c) { return self.prepareClause(c) },
+                mori.get(clause, ":sub")
+            );
+            var statements = mori.map(
+                function(c) { return mori.get(c, ":statement") },
+                clauses
+            );
             var binds = mori.map(
                 function(c) { return mori.get(c, ":bind") },
                 clauses
             );
             var statement = mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ");
-            var bind = mori.toClj(mori.flatten(binds));
+            var bind = mori.into(mori.vector(), mori.flatten(binds));
             return mori.hashMap(":statement", statement,
                                 ":bind", bind);
         } else {

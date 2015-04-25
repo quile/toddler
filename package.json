@@ -1,10 +1,10 @@
 {
   "name": "toddler",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Javascript DSL for Query Languages",
   "author": {
     "name": "Kyle Dawkins",
-    "email": "kdawkins@fastmail.fm"
+    "email": "info@kyledawkins.com"
   },
   "main": "./toddler.js",
   "repository": "https://github.com/quile/toddler",

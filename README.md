@@ -4,7 +4,8 @@
 
 Toddler is a library for building queries that can be programmatically
 manipulated and are simple data structures.  Those queries can be
-turned into SQL or CQL for sending to SQL databases or Cassandra.
+turned into CQL for sending to Cassandra.  Soon it will also
+generate various flavours of SQL for sending to SQL databases.
 
 ## Select Example
 
@@ -50,7 +51,7 @@ in the "binds":
 
 Delete statements are fairly simple:
 
-    var delete = toddler.query().delete().from("tree").
+    var delete = toddler.delete().from("tree").
                          where(toddler.eq("fruit", toddler.bind("banana")));
 
     console.log(delete.cql());
@@ -73,6 +74,11 @@ More docs coming soon; for now just check out the tests.
 
 This is likely to be unstable for a while as I put all the
 bits and pieces together into a more coherent whole.
+
+## Contribute
+
+If you're using toddler in your code, let me know!  And I'll happily
+review pull requests if you feel like contributing.  Cheers!
 
 # License
 

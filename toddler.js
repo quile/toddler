@@ -124,72 +124,146 @@ var toddler = {
     }
 };
 
-function CQLTranslator() {}
+function Translator(dialect) {
+    this._translator = this.loadTranslator(dialect);
+    this._dialect = dialect;
+}
 
-CQLTranslator.prototype.prepareSelect = function(query) {
-    var q = ["select"];
+Translator.prototype.DIALECTS = {
+    "cql": CQLTranslator,
+    // "mysql": "SQLTranslator",
+    // "postgres": "SQLTranslator",
+    // "default": "SQLTranslator",
+    // "sql": "SQLTranslator",
+};
 
-    // columns
-    q.push(this.prepareColumns(query));
+Translator.prototype.loadTranslator = function(dialect) {
+    var clarse = this.DIALECTS[dialect.toLowerCase()] ||
+                    this.DIALECTS["default"];
+    return new clarse();
+};
 
-    // tables
-    q.push("from");
-    q.push(this.prepareTables(query));
+Translator.prototype._renderBuffer = function(buffer) {
+    var q = mori.toClj(buffer);
+    var flat = mori.flatten(q);
 
+    var statementParts = mori.map(function(o) {
+        if (typeof o === "string") { return o }
+        return mori.get(o, ":statement");
+    }, flat);
+    var bindParts = mori.map(function(o) {
+        if (typeof o === "string") { return null }
+        return mori.get(o, ":bind");
+    }, flat);
+
+    return mori.hashMap(
+        ":statement", mori.toJs(mori.filter(function(o) {
+                return o;
+            }, statementParts)).join(" "),
+        ":bind", mori.flatten(mori.filter(function(o) { return o }, bindParts))
+    );
+};
+
+// Later generalise this to other dialects
+Translator.prototype.prepare = function(query) {
+    var operation = mori.get(query, ":operation");
+
+    switch(operation) {
+        case ":select":
+            return this.prepareSelect(query);
+        case ":insert":
+            return this.prepareInsert(query);
+        case ":delete":
+            return this.prepareDelete(query);
+        default:
+            throw new Error("No such operation: " + operation);
+    }
+}
+
+Translator.prototype.prepareSelect = function(query) {
+    return this._renderBuffer([
+        "select",
+        this.prepareColumns(query),
+        "from",
+        this.prepareTables(query),
+        this.prepareWhere(query),
+        this.prepareOrdering(query),
+        this.prepareLimit(query),
+        this.prepareOffset(query)
+    ]);
+};
+
+Translator.prototype.prepareInsert = function(query) {
+    var preparedValues = this._translator.prepareValues(query);
+    var rendered = this._renderBuffer([
+        "insert into",
+        this.prepareTables(query),
+        "(", this.prepareColumns(query), ")",
+        "values",
+        "(", mori.get(preparedValues, ":statement"), ")"
+    ]);
+    return mori.hashMap(":statement", mori.get(rendered, ":statement"),
+                        ":bind", mori.toJs(mori.get(preparedValues, ":bind")));
+};
+
+Translator.prototype.prepareDelete = function(query) {
+    return this._renderBuffer([
+        "delete from",
+        this.prepareTables(query),
+        this.prepareWhere(query)
+    ]);
+};
+
+Translator.prototype.prepareWhere = function(query) {
     var where = mori.get(query, ":where");
     var bind = mori.vector();
     if (where) {
-        q.push("where");
-        var clause = this.prepareClause(where);
-        q.push(mori.get(clause, ":statement"));
-        bind = mori.get(clause, ":bind");
+        return this._renderBuffer([
+            "where",
+            this.prepareClause(where)
+        ]);
     }
+    return null;
+};
 
+Translator.prototype.prepareLimit = function(query) {
     var limit = mori.get(query, ":limit");
+    var bind = mori.vector();
     if (limit) {
-        q.push("limit");
+        var q = ["limit"];
         q.push(limit);
         if (limit === "?" || limit === "%@") {
             bind = mori.conj(bind, "?");
         }
+        return mori.hashMap(":statement", q.join(" "),
+                            ":bind", bind);
     }
-
-    // TODO: offset is not valid for CQL but is
-    // for SQL.
-
-    return mori.hashMap(":statement", q.join(" "), ":bind", mori.toJs(bind));
-}
-
-CQLTranslator.prototype.prepareInsert = function(query) {
-    var preparedValues = this.prepareValues(query);
-    var q = [
-        "insert into",
-        this.prepareTables(query),
-        "(" + this.prepareColumns(query) + ")",
-        "values",
-        "(" + mori.get(preparedValues, ":statement") + ")"
-    ];
-    return mori.hashMap(":statement", q.join(" "),
-                        ":bind", mori.toJs(mori.get(preparedValues, ":bind")));
+    return null;
 };
 
-CQLTranslator.prototype.prepareDelete = function(query) {
-    var q = [
-        "delete from",
-        this.prepareTables(query)
-    ];
-
-    var where = mori.get(query, ":where");
-    var bind = mori.vector();
-    if (where) {
-        q.push("where");
-        var clause = this.prepareClause(where);
-        q.push(mori.get(clause, ":statement"));
-        bind = mori.get(clause, ":bind");
-    }
-    return mori.hashMap(":statement", q.join(" "),
-                        ":bind", mori.toJs(bind));
+Translator.prototype.prepareColumns = function(query) {
+    return this._translator.prepareColumns(query);
 };
+
+Translator.prototype.prepareTables = function(query) {
+    return this._translator.prepareTables(query);
+};
+
+Translator.prototype.prepareClause = function(clause) {
+    return this._translator.prepareClause(clause);
+};
+
+Translator.prototype.prepareOrdering = function(query) {
+    return null;
+};
+
+Translator.prototype.prepareOffset = function(query) {
+    return null;
+};
+
+// ============================================================
+
+function CQLTranslator() {}
 
 CQLTranslator.prototype.prepareTables = function(query) {
     return mori.get(query, ":table");
@@ -227,22 +301,6 @@ CQLTranslator.prototype.prepareValues = function(query) {
     return mori.hashMap(":statement", q.join(", "),
                         ":bind", mori.vector.apply(mori, binds));
 };
-
-// Later generalise this to other dialects
-CQLTranslator.prototype.prepare = function(query) {
-    // operator
-    if (mori.get(query, ":operation") === ":select") {
-        return this.prepareSelect(query);
-    }
-
-    if (mori.get(query, ":operation") === ":insert") {
-        return this.prepareInsert(query);
-    }
-
-    if (mori.get(query, ":operation") === ":delete") {
-        return this.prepareDelete(query);
-    }
-}
 
 CQLTranslator.prototype.OPERAND_MAP = mori.hashMap(
     ":and", "and",
@@ -300,11 +358,11 @@ CQLTranslator.prototype.prepareClause = function(clause) {
     }
 }
 
-toddler.CQLTranslator = CQLTranslator;
+toddler.Translator = Translator;
 
 function Query() {
     this._query = mori.hashMap();
-    this._translator = new CQLTranslator();
+    this._translator = new Translator("CQL");
 }
 
 Query.prototype.select = function(columns) {

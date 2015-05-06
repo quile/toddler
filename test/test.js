@@ -3,7 +3,7 @@ var assert = require("assert");
 
 var toddler = require("../toddler");
 
-var t = new toddler.CQLTranslator();
+var t = new toddler.Translator("CQL");
 
 describe("queries", function() {
     describe("select", function () {
@@ -78,7 +78,7 @@ describe("queries", function() {
             var cql = q.cql();
             assert.equal(
                 cql,
-                "insert into zoo (zip, zap) values (?, ?)"
+                "insert into zoo ( zip, zap ) values ( ?, ? )"
             );
         });
 

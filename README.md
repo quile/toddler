@@ -23,7 +23,7 @@ Now qualify it:
 
 And generate some CQL:
 
-    console.log(q.cql());
+    console.log(q.statement("CQL"));
     => "select foo, bar from zip where pop < ? limit 12"
 
 Queries are stored internally as mori (read: immutable) data structures, so
@@ -38,13 +38,13 @@ You can generate an insert statement using the same syntax:
     var insert = toddler.insert("foo", "bar", "baz").
                          into("quux").
                          values("?", "hey", toddler.raw("dateOf(now())"));
-    console.log(insert.cql());
+    console.log(insert.statement("CQL"));
     => "insert into quux (foo, bar, baz) values (?, ?, dateOf(now()))"
 
 Note that the "hey" has disappeared from the values; instead it will appear
 in the "binds":
 
-    console.log(insert.binds());
+    console.log(insert.binds("CQL"));
     => ["?", "hey"]
 
 ## Delete Example
@@ -54,7 +54,7 @@ Delete statements are fairly simple:
     var delete = toddler.delete().from("tree").
                          where(toddler.eq("fruit", toddler.bind("banana")));
 
-    console.log(delete.cql());
+    console.log(delete.statement("CQL"));
     => "delete from tree where fruit = ?"
 
 You can retrieve any bind values the same way as shown above.
@@ -65,9 +65,7 @@ More docs coming soon; for now just check out the tests.
 
 * Proper docs
 * Proper tests
-* SQL (dialect) generation
 * bind-value conveniences & helpers
-* Clean up CQL generation
 * Add other missing syntax
 
 ## Warning

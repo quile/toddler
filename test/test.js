@@ -45,7 +45,7 @@ describe("queries", function() {
             )).
             limit(3);
 
-        var cql = query.cql();
+        var cql = query.statement("CQL");
 
         it("generated correct CQL from select object", function() {
             assert.equal(
@@ -75,7 +75,7 @@ describe("queries", function() {
             );
 
         it("generates correct CQL from insert", function() {
-            var cql = q.cql();
+            var cql = q.statement("CQL");
             assert.equal(
                 cql,
                 "insert into zoo ( zip, zap ) values ( ?, ? )"
@@ -83,7 +83,7 @@ describe("queries", function() {
         });
 
         it("generates the correct bind values from insert", function() {
-            var binds = q.binds();
+            var binds = q.binds("CQL");
             assert.equal(binds[0], "gronk");
             assert.equal(binds[1], "plonk");
         });
@@ -106,7 +106,7 @@ describe("queries", function() {
                 ]));
 
         it("generates the correct CQL from delete", function() {
-            var cql = q.cql();
+            var cql = q.statement("cql");
             assert.equal(
                 cql,
                 "delete from aquarium where fish = ? or fish = ?"
@@ -114,7 +114,7 @@ describe("queries", function() {
         });
 
         it("generates the correct bind values from delete", function() {
-            var binds = q.binds();
+            var binds = q.binds("CQL");
             assert.equal(binds[0], "shark");
             assert.equal(binds[1], "manta ray");
         });
@@ -127,10 +127,10 @@ describe("queries", function() {
         );
 
         it("generates the correct empty bind values from delete", function() {
-            var binds = noBinds.binds();
+            var binds = noBinds.binds("CQL");
             assert.equal(binds[0], "?");
             assert.equal(binds[1], "?");
-            var cql = noBinds.cql();
+            var cql = noBinds.statement("CQL");
             assert.equal(
                 cql,
                 "delete from lunch_box where salad = ? and cheese = ?"

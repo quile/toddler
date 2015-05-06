@@ -2,6 +2,7 @@
 // Query language DSL for Javascript
 
 var mori = require("mori");
+var util = require("util");
 
 var toddler = {
 
@@ -129,12 +130,12 @@ function Translator(dialect) {
     this._dialect = dialect;
 }
 
+// These will be fleshed out and customised as we go.
 Translator.prototype.DIALECTS = {
     "cql": CQLTranslator,
-    // "mysql": "SQLTranslator",
-    // "postgres": "SQLTranslator",
-    // "default": "SQLTranslator",
-    // "sql": "SQLTranslator",
+    "mysql": DefaultTranslator,
+    "default": DefaultTranslator,
+    "sql": DefaultTranslator,
 };
 
 Translator.prototype.loadTranslator = function(dialect) {
@@ -263,13 +264,13 @@ Translator.prototype.prepareOffset = function(query) {
 
 // ============================================================
 
-function CQLTranslator() {}
+function DefaultTranslator() {}
 
-CQLTranslator.prototype.prepareTables = function(query) {
+DefaultTranslator.prototype.prepareTables = function(query) {
     return mori.get(query, ":table");
 };
 
-CQLTranslator.prototype.prepareColumns = function(query) {
+DefaultTranslator.prototype.prepareColumns = function(query) {
     // columns
     var columns = mori.get(query, ":columns");
     if (columns === null) {
@@ -280,7 +281,7 @@ CQLTranslator.prototype.prepareColumns = function(query) {
     return mori.toJs(columns).join(", ");
 };
 
-CQLTranslator.prototype.prepareValues = function(query) {
+DefaultTranslator.prototype.prepareValues = function(query) {
     var binds = [];
     var q = [];
     var values = mori.get(query, ":values");
@@ -302,13 +303,13 @@ CQLTranslator.prototype.prepareValues = function(query) {
                         ":bind", mori.vector.apply(mori, binds));
 };
 
-CQLTranslator.prototype.OPERAND_MAP = mori.hashMap(
+DefaultTranslator.prototype.OPERAND_MAP = mori.hashMap(
     ":and", "and",
     ":or", "or",
     ":not", "not"
 );
 
-CQLTranslator.prototype.prepareClause = function(clause) {
+DefaultTranslator.prototype.prepareClause = function(clause) {
     var self = this;
     if (mori.isMap(clause)) {
         var type = mori.get(clause, ":type");
@@ -327,7 +328,7 @@ CQLTranslator.prototype.prepareClause = function(clause) {
             );
             var statement = mori.toJs(statements).join(" " + mori.get(this.OPERAND_MAP, type) + " ");
             var bind = mori.into(mori.vector(), mori.flatten(binds));
-            return mori.hashMap(":statement", statement,
+            return mori.hashMap(":statement", "(" + statement + ")",
                                 ":bind", bind);
         } else {
             // NOT
@@ -356,13 +357,27 @@ CQLTranslator.prototype.prepareClause = function(clause) {
         }
         return mori.hashMap(":statement", statement, ":bind", mori.toClj(binds));
     }
+    throw new Error("Couldn't build clause from " + clause);
+}
+
+function CQLTranslator(){}
+
+util.inherits(CQLTranslator, DefaultTranslator);
+
+// CQL is über-dopey about a where clause that
+// starts and ends with parentheses.  This is
+// a less-than-ideal way to strip those off.
+CQLTranslator.prototype.prepareClause = function(clause) {
+    var supe = CQLTranslator.super_.prototype.prepareClause.call(this, clause);
+    var statement = mori.get(supe, ":statement");
+    statement = statement.replace(/(^\(|\)$)/g, "");
+    return mori.assoc(supe, ":statement", statement);
 }
 
 toddler.Translator = Translator;
 
 function Query() {
     this._query = mori.hashMap();
-    this._translator = new Translator("CQL");
 }
 
 Query.prototype.select = function(columns) {
@@ -441,14 +456,16 @@ Query.prototype.not = function() {
 
 Query.prototype.query = function() { return this._query };
 
-Query.prototype.cql = function() {
-    var cql = this._translator.prepare(this._query);
-    return mori.get(cql, ":statement");
+Query.prototype.statement = function(dialect) {
+    var translator = new Translator(dialect);
+    var prepared = translator.prepare(this._query);
+    return mori.get(prepared, ":statement");
 }
 
-Query.prototype.binds = function() {
-    var cql = this._translator.prepare(this._query);
-    return mori.toJs(mori.get(cql, ":bind"));
+Query.prototype.binds = function(dialect) {
+    var translator = new Translator(dialect);
+    var prepared = translator.prepare(this._query);
+    return mori.toJs(mori.get(prepared, ":bind"));
 }
 
 toddler.Query = Query;

@@ -255,7 +255,7 @@ Translator.prototype.prepareClause = function(clause) {
 };
 
 Translator.prototype.prepareOrdering = function(query) {
-    return null;
+    return this._translator.prepareOrdering(query);
 };
 
 Translator.prototype.prepareOffset = function(query) {
@@ -358,7 +358,18 @@ DefaultTranslator.prototype.prepareClause = function(clause) {
         return mori.hashMap(":statement", statement, ":bind", mori.toClj(binds));
     }
     throw new Error("Couldn't build clause from " + clause);
-}
+};
+
+DefaultTranslator.prototype.prepareOrdering = function(query) {
+    var orderings = mori.get(query, ":order");
+    if (orderings) {
+        return mori.vector(
+            "order by",
+            mori.toJs(orderings).join(", ")
+        );
+    }
+    return null;
+};
 
 function CQLTranslator(){}
 
@@ -457,12 +468,14 @@ Query.prototype.not = function() {
 Query.prototype.query = function() { return this._query };
 
 Query.prototype.statement = function(dialect) {
+    dialect = dialect || "default";
     var translator = new Translator(dialect);
     var prepared = translator.prepare(this._query);
     return mori.get(prepared, ":statement");
 }
 
 Query.prototype.binds = function(dialect) {
+    dialect = dialect || "default";
     var translator = new Translator(dialect);
     var prepared = translator.prepare(this._query);
     return mori.toJs(mori.get(prepared, ":bind"));

@@ -3,10 +3,10 @@ var assert = require("assert");
 
 var toddler = require("../toddler");
 
-var t = new toddler.Translator("CQL");
+var t = new toddler.Translator("default");
 
 describe("queries", function() {
-    describe("select", function () {
+    describe("default select", function () {
         var q = toddler.select(
             toddler.from(
                 toddler.where(
@@ -45,12 +45,12 @@ describe("queries", function() {
             )).
             limit(3);
 
-        var cql = query.statement("CQL");
+        var statement = query.statement();
 
-        it("generated correct CQL from select object", function() {
+        it("generated correct SQL from select object", function() {
             assert.equal(
-                cql,
-                "select mango, papaya from fruit where colour = ? and size > ? limit 3"
+                statement,
+                "select mango, papaya from fruit where (colour = ? and size > ?) limit 3"
             );
         });
     });
@@ -74,16 +74,16 @@ describe("queries", function() {
                 toddler.bind("plonk")
             );
 
-        it("generates correct CQL from insert", function() {
-            var cql = q.statement("CQL");
+        it("generates correct SQL from insert", function() {
+            var statement = q.statement();
             assert.equal(
-                cql,
+                statement,
                 "insert into zoo ( zip, zap ) values ( ?, ? )"
             );
         });
 
         it("generates the correct bind values from insert", function() {
-            var binds = q.binds("CQL");
+            var binds = q.binds();
             assert.equal(binds[0], "gronk");
             assert.equal(binds[1], "plonk");
         });
@@ -105,16 +105,16 @@ describe("queries", function() {
                     toddler.eq("fish", "manta ray")
                 ]));
 
-        it("generates the correct CQL from delete", function() {
-            var cql = q.statement("cql");
+        it("generates the correct SQL from delete", function() {
+            var statement = q.statement();
             assert.equal(
-                cql,
-                "delete from aquarium where fish = ? or fish = ?"
+                statement,
+                "delete from aquarium where (fish = ? or fish = ?)"
             );
         });
 
         it("generates the correct bind values from delete", function() {
-            var binds = q.binds("CQL");
+            var binds = q.binds();
             assert.equal(binds[0], "shark");
             assert.equal(binds[1], "manta ray");
         });
@@ -127,13 +127,13 @@ describe("queries", function() {
         );
 
         it("generates the correct empty bind values from delete", function() {
-            var binds = noBinds.binds("CQL");
+            var binds = noBinds.binds();
             assert.equal(binds[0], "?");
             assert.equal(binds[1], "?");
-            var cql = noBinds.statement("CQL");
+            var statement = noBinds.statement();
             assert.equal(
-                cql,
-                "delete from lunch_box where salad = ? and cheese = ?"
+                statement,
+                "delete from lunch_box where (salad = ? and cheese = ?)"
             );
         });
     });
@@ -154,7 +154,7 @@ describe("queries", function() {
 
             assert(mori.equals(
                 t.prepareClause(clause),
-                mori.hashMap(":statement", "not foo = ? and thing >= ?",
+                mori.hashMap(":statement", "not (foo = ? and thing >= ?)",
                              ":bind", mori.vector("bar", 12))
             ));
         });
@@ -164,7 +164,7 @@ describe("queries", function() {
 
             assert(mori.equals(
                 t.prepareClause(clause),
-                mori.hashMap(":statement", "foo = ? and thing >= ?",
+                mori.hashMap(":statement", "(foo = ? and thing >= ?)",
                              ":bind", mori.vector("bar", 12))
             ));
         });
@@ -174,7 +174,7 @@ describe("queries", function() {
 
             assert(mori.equals(
                 t.prepareClause(clause),
-                mori.hashMap(":statement", "foo = ? or thing >= ?",
+                mori.hashMap(":statement", "(foo = ? or thing >= ?)",
                              ":bind", mori.vector("bar", 12))
             ));
         });
@@ -186,7 +186,7 @@ describe("queries", function() {
 
             assert(mori.equals(
                 t.prepareClause(clause3),
-                mori.hashMap(":statement", "foo = ? or baz != ? and blonk = ? and gronk < ?",
+                mori.hashMap(":statement", "((foo = ? or baz != ?) and (blonk = ? and gronk < ?))",
                              ":bind", mori.vector("bar", "quux", "zap", 42))
             ))
         });

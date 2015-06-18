@@ -442,8 +442,8 @@ Query.prototype.offset = function(offset) {
     return this;
 };
 
-Query.prototype.orderBy = function(orderings) {
-    this._query = toddler.orderBy(this._query, orderings);
+Query.prototype.orderBy = function() {
+    this._query = toddler.orderBy(this._query, mori.primSeq(arguments));
     return this;
 };
 

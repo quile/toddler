@@ -43,6 +43,7 @@ describe("queries", function() {
                 toddler.eq("colour", "orange"),
                 toddler.gt("size", 20)
             )).
+            orderBy("guava DESC", "feijoa").
             limit(3);
 
         var statement = query.statement();
@@ -50,7 +51,7 @@ describe("queries", function() {
         it("generated correct SQL from select object", function() {
             assert.equal(
                 statement,
-                "select mango, papaya from fruit where (colour = ? and size > ?) limit 3"
+                "select mango, papaya from fruit where (colour = ? and size > ?) order by guava DESC, feijoa limit 3"
             );
         });
     });

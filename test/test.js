@@ -44,14 +44,17 @@ describe("queries", function() {
                 toddler.gt("size", 20)
             )).
             orderBy("guava DESC", "feijoa").
-            limit(3);
+            limit(3).
+            offset(12);
 
+        console.log(mori.toJs(query));
+        
         var statement = query.statement();
 
         it("generated correct SQL from select object", function() {
             assert.equal(
                 statement,
-                "select mango, papaya from fruit where (colour = ? and size > ?) order by guava DESC, feijoa limit 3"
+                "select mango, papaya from fruit where (colour = ? and size > ?) order by guava DESC, feijoa limit 3 offset 12"
             );
         });
     });
@@ -189,7 +192,7 @@ describe("queries", function() {
                 t.prepareClause(clause3),
                 mori.hashMap(":statement", "((foo = ? or baz != ?) and (blonk = ? and gronk < ?))",
                              ":bind", mori.vector("bar", "quux", "zap", 42))
-            ))
+            ));
         });
     });
 });

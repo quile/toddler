@@ -259,7 +259,7 @@ Translator.prototype.prepareOrdering = function(query) {
 };
 
 Translator.prototype.prepareOffset = function(query) {
-    return null;
+    return this._translator.prepareOffset(query);
 };
 
 // ============================================================
@@ -370,6 +370,15 @@ DefaultTranslator.prototype.prepareOrdering = function(query) {
     }
     return null;
 };
+
+DefaultTranslator.prototype.prepareOffset = function(query) {
+    var offset = mori.get(query, ":offset");
+    // a zero offset, or a non-existent offset, are equivalent
+    if (offset) {
+        return mori.vector("offset", "" + offset);
+    }
+    return null;
+}
 
 function CQLTranslator(){}
 
